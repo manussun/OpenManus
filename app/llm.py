@@ -32,6 +32,7 @@ from app.schema import (
 
 
 REASONING_MODELS = ["o1", "o3-mini"]
+NON_TOOL_MODELS = ["o3", "o3-mini"] # Models that do not support tool use
 MULTIMODAL_MODELS = [
     "gpt-4-vision-preview",
     "gpt-4o",
@@ -714,11 +715,17 @@ class LLM:
             params = {
                 "model": self.model,
                 "messages": messages,
-                "tools": tools,
-                "tool_choice": tool_choice,
                 "timeout": timeout,
                 **kwargs,
             }
+
+            # Conditionally add tool parameters
+            if self.model not in NON_TOOL_MODELS and tools:
+                params["tools"] = tools
+                params["tool_choice"] = tool_choice
+            elif self.model in NON_TOOL_MODELS and tools:
+                logger.warning(f"Model {self.model} does not support tool use, but tools were provided. Ignoring tools.")
+
 
             if self.model in REASONING_MODELS:
                 params["max_completion_tokens"] = self.max_tokens
